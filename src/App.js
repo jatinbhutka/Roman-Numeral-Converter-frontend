@@ -7,7 +7,6 @@ import {
   TextField,
   View,
   Text,
-  Form,
 } from "@adobe/react-spectrum";
 
 function App() {
@@ -15,20 +14,40 @@ function App() {
   const [output, setOutput] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const getSystemTheme = () =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+
+  const [colorScheme, setColorScheme] = useState(getSystemTheme());
+
+  React.useEffect(() => {
+    const listener = (e) => setColorScheme(e.matches ? "dark" : "light");
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", listener);
+
+    return () => {
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .removeEventListener("change", listener);
+    };
+  }, []);
 
   const convertToRoman = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:8080/romannumeral?query=${input}`
+        `https://roman-numeral-converter-green.vercel.app/convert?num=${input}`
+        // `http://127.0.0.1:5000/convert?num=${input}` //to run API locally
       );
       const data = await response.json();
       if (data.error) {
         setError(data.error);
         setOutput("");
       } else {
-        setOutput(data.output);
+        setOutput(data.roman);
       }
     } catch (err) {
       setError("Failed to connect to a server");
@@ -38,7 +57,7 @@ function App() {
 
   return (
     <div className="App">
-      <Provider theme={defaultTheme} colorScheme="dark">
+      <Provider theme={defaultTheme} colorScheme={colorScheme}>
         <h1>Roman Numeral Converter</h1>
         <View padding="size-200" maxWidth="size-3600">
           <TextField
@@ -56,18 +75,16 @@ function App() {
           >
             Convert to roman numeral
           </Button>
-
-          {loading && <Text>Loading...</Text>}
-          {error && (
-            <View marginTop="size-200">
-              <Text color="negative">{error}</Text>
-            </View>
-          )}
-          {output && (
-            <View marginTop="size-200">
-              <Text>Roman Numeral: {output}</Text>
-            </View>
-          )}
+          <View marginTop="size-200">
+            {loading && <Text>Loading...</Text>}
+            {error && <Text UNSAFE_style={{ color: "red" }}>{error}</Text>}
+            {output && (
+              <Text>
+                <b>Roman Numeral: </b>
+                {output}
+              </Text>
+            )}
+          </View>
         </View>
       </Provider>
     </div>
